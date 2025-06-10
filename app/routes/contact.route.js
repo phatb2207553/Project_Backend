@@ -4,12 +4,12 @@ const contacts = require("../controllers/contact.controller");
 const router = express. Router(); 
 
 router.route("/") 
-    .get(contacts.findAll) 
+    .get(contacts.findALL) 
     .post(contacts.create) 
-    .delete(contacts.deleteAll);
+    .delete(contacts.deleteALL);
 
 router.route("/favorite") 
-    .get(contacts.findAllFavorite); 
+    .get(contacts.findALLFavorite); 
 
 router.route("/:id") 
     .get(contacts.findOne) 

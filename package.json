@@ -21,8 +21,7 @@
     "prettier": "^3.5.3",
     "typescript-eslint": "^8.34.0"
   },
-  "script" : {
+  "script": {
     "start": "nodemon server.js"
-  },
-  "":{}
+  }
 }
