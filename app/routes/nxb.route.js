@@ -9,4 +9,4 @@ router.get("/", verifyToken, NXBController.getAll);
 router.put("/:id", verifyToken, requireRole("admin"), NXBController.update);
 router.delete("/:id", verifyToken, requireRole("admin"), NXBController.remove);
 
-module.exports = router;
+module.exports = router; 

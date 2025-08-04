@@ -9,7 +9,7 @@ exports.getAll = async (req, res) => {
   const nxbs = await NXBService.getAll();
   res.json(nxbs);
 };
-
+ 
 exports.update = async (req, res) => {
   const updated = await NXBService.update(req.params.id, req.body);
   res.json(updated);

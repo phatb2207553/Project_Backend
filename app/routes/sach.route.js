@@ -9,4 +9,4 @@ router.post("/", verifyToken, requireRole("admin"), SachController.create);
 router.put("/:id", verifyToken, requireRole("admin"), SachController.update);
 router.delete("/:id", verifyToken, requireRole("admin"), SachController.remove);
 
-module.exports = router;
+module.exports = router; 

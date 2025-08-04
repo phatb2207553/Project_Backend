@@ -27,3 +27,11 @@ exports.create = async (data) => {
 exports.getProfile = async (id) => {
   return await NhanVien.findById(id).select("-password");
 };
+
+exports.updateProfile = async (id, data) => {
+  const { password, ...info } = data;
+  if (password) {
+    info.password = await bcrypt.hash(password, 10);
+  }
+  return await NhanVien.findByIdAndUpdate(id, info, { new: true, runValidators: true }).select("-password");
+};

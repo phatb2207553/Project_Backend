@@ -26,3 +26,13 @@ exports.getProfile = async (req, res) => {
     res.status(404).json({ message: "Không tìm thấy nhân viên" });
   }
 };
+
+exports.updateProfile = async (req, res) => {
+  const result = await NhanVienService.updateProfile(req.user.id, req.body);
+  res.json({
+    message: "Cập nhật thành công",
+    data: result
+  });
+};
+
+

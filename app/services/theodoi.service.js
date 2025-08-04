@@ -10,7 +10,7 @@ exports.dangKyMuon = async (docGiaId, maSach) => {
   // Kiểm tra độc giả đã đăng ký quá 5 sách chưa (chỉ tính những sách chưa trả)
   const soLuongDangMuon = await TheoDoi.countDocuments({
     maDocGia: docGiaId,
-    trangThai: { $in: ["pending", "borrowed"] }
+    trangThai: { $in: ["pending", "approved", "borrowed"] }
   });
 
   if (soLuongDangMuon >= 5) {
@@ -33,8 +33,8 @@ exports.dangKyMuon = async (docGiaId, maSach) => {
 };
 
 
-// ✅ Nhân viên duyệt => truyền msnv vào
-exports.duyetMuon = async (muonId, msnv) => {
+// Nhân viên duyệt => truyền msnv vào
+exports.duyetDangKy = async (muonId, msnv) => {
   const record = await TheoDoi.findById(muonId).populate("maSach");
   if (!record || record.trangThai !== "pending") throw new Error("Không hợp lệ");
 
@@ -43,6 +43,18 @@ exports.duyetMuon = async (muonId, msnv) => {
 
   sach.soQuyen -= 1;
   await sach.save();
+
+  record.trangThai = "approved";
+  record.ngayMuon = new Date();
+  record.msnv = msnv; // ✅ lưu mã nhân viên duyệt
+  await record.save();
+
+  return record;
+};
+
+exports.duyetMuon = async (muonId, msnv) => {
+  const record = await TheoDoi.findById(muonId).populate("maSach");
+  if (!record || record.trangThai !== "approved") throw new Error("Không hợp lệ");
 
   record.trangThai = "borrowed";
   record.ngayMuon = new Date();
@@ -73,13 +85,11 @@ exports.traSach = async (muonId, isLost) => {
     if (soNgay > 15) {
       phat = Math.min((soNgay - 15) * 10000, 500000);
     }
-
-    // ✅ Trả sách thì cộng lại số lượng
-    // Khi mất sách mà đền rồi thì coi như nhân viên chạy đi mua sách luôn
-    sach.soQuyen += 1;
-    await sach.save();
   }
-
+  // ✅ Cộng lại số lượng
+  sach.soQuyen += 1;
+  await sach.save();
+  
   record.ngayTra = ngayTra;
   record.tienPhat = phat;
   await record.save();
@@ -87,6 +97,65 @@ exports.traSach = async (muonId, isLost) => {
   return record;
 };
 
+exports.xoaDonDaDuyet = async (muonId) => {
+  const record = await TheoDoi.findById(muonId);
+
+  if (!record) {
+    throw new Error("Không tìm thấy đơn đăng ký");
+  }
+
+  if (record.trangThai !== "approved") {
+    throw new Error("Chỉ được xóa các đơn đã duyệt. Đơn hiện tại không hợp lệ.");
+  }
+
+  // Trả lại sách nếu đơn đã duyệt mà chưa mượn
+  const sach = await Sach.findById(record.maSach);
+  if (sach) {
+    sach.soQuyen += 1;
+    await sach.save();
+  }
+
+  await TheoDoi.deleteOne({ _id: muonId });
+
+  return { message: "Xóa đơn đã duyệt thành công" };
+};
+
 exports.getLichSu = async (docGiaId) => {
   return await TheoDoi.find({ maDocGia: docGiaId }).populate("maSach");
 };
+
+exports.layDonMuonSach = async () => {
+  return await TheoDoi.find({ trangThai: "pending" })
+    .populate("maDocGia", "maDocGia hoLot ten dienThoai")
+    .populate("maSach", "tenSach donGia");
+};
+
+exports.layDonTraSach = async () => {
+  return await TheoDoi.find({ trangThai: "borrowed" })
+    .populate("maDocGia", "maDocGia hoLot ten dienThoai")
+    .populate("maSach", "tenSach donGia");
+};
+
+exports.layTatCaDon = async () => {
+  return await TheoDoi.find()
+    .populate("maDocGia", "maDocGia hoLot ten dienThoai")
+    .populate("maSach", "tenSach donGia")
+    .populate("msnv", "hoTenNV msnv")
+    .sort({ createdAt: -1 }); // sắp xếp mới nhất trước
+};
+
+exports.xoaDonDangKy = async (docGiaId, muonId) => {
+  const record = await TheoDoi.findOne({ _id: muonId, maDocGia: docGiaId });
+
+  if (!record) {
+    throw new Error("Không tìm thấy đơn mượn này");
+  }
+
+  if (record.trangThai !== "pending") {
+    throw new Error("Sách này đã được duyệt, vui lòng liên hệ nhân viên để được hỗ trợ");
+  }
+
+  await TheoDoi.deleteOne({ _id: muonId });
+  return { message: "Xóa đơn mượn thành công" };
+};
+
